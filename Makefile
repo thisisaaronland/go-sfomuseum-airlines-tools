@@ -42,7 +42,7 @@ bin: 	self
 	@GOPATH=$(GOPATH) go build -o bin/build-sfomuseum-data cmd/build-sfomuseum-data.go
 	@GOPATH=$(GOPATH) go build -o bin/build-flysfo-data cmd/build-flysfo-data.go
 
-data:	sfomuseum-data
+data:	sfomuseum-data flysfo-data
 
 sfomuseum-data:
 	bin/build-sfomuseum-data > /usr/local/sfomuseum/go-sfomuseum-airlines/sfomuseum/data.go
