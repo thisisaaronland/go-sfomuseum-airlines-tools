@@ -65,7 +65,7 @@ func main() {
 			return err
 		}
 
-		iata_code, ok := concordances["iata:code"]
+		iata_code, ok := concordances["flysfo:code"]
 
 		if !ok {
 			return nil
