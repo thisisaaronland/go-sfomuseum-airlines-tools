@@ -80,6 +80,8 @@ func main() {
 			log.Println("WARNING", iata_code, w, wof_id)
 		}
 
+		seen.Store(iata_code, wof_id)
+
 		sfom_id := utils.Int64Property(f.Bytes(), []string{"properties.sfomuseum:airline_id"}, -1)
 
 		a := sfomuseum.Airline{
@@ -89,11 +91,28 @@ func main() {
 			IATACode:    iata_code,
 		}
 
+		icao_code, ok := concordances["icao:code"]
+
+		if ok {
+			w, ok := seen.Load(icao_code)
+
+			if ok {
+				log.Println("WARNING", icao_code, w, wof_id)
+
+			} else {
+				seen.Store(icao_code, wof_id)
+			}
+
+			a.ICAOCode = icao_code
+
+		} else {
+			log.Println("WARNING", "Missing ICAO code", wof_id)
+		}
+
 		mu.Lock()
 		defer mu.Unlock()
 
 		lookup = append(lookup, a)
-		seen.Store(iata_code, wof_id)
 
 		return nil
 	}

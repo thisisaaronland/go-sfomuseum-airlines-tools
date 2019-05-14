@@ -1,9 +1,10 @@
-package airlines
+package wikipedia
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/sfomuseum/go-sfomuseum-airlines"
 	"github.com/whosonfirst/go-whosonfirst-csv"
 	"io"
 	_ "log"
@@ -11,14 +12,26 @@ import (
 	"sync"
 )
 
+type Airline struct {
+	IATA      string // 2-letter code
+	ICAO      string // 3-letter code
+	TELEPHONY string
+	Name      string
+	Duplicate bool // IATA, this should probably be renamed
+}
+
+func (a *Airline) String() string {
+	return fmt.Sprintf("%s %s %s", a.IATA, a.ICAO, a.TELEPHONY)
+}
+
 var lookup_table *sync.Map
 var lookup_init sync.Once
 
-type Lookup struct {
-	// we used to store the lookup_table here but then switched to sync.Once-ing
+type WikipediaLookup struct {
+	airlines.Lookup
 }
 
-func NewLookup() (*Lookup, error) {
+func NewLookup() (airlines.Lookup, error) {
 
 	var lookup_err error
 
@@ -115,11 +128,11 @@ func NewLookup() (*Lookup, error) {
 		return nil, lookup_err
 	}
 
-	l := Lookup{}
+	l := WikipediaLookup{}
 	return &l, nil
 }
 
-func (l *Lookup) Find(code string) ([]*Airline, error) {
+func (l *WikipediaLookup) Find(code string) ([]interface{}, error) {
 
 	pointers, ok := lookup_table.Load(code)
 
@@ -127,7 +140,7 @@ func (l *Lookup) Find(code string) ([]*Airline, error) {
 		return nil, errors.New("Not found")
 	}
 
-	airlines := make([]*Airline, 0)
+	airlines := make([]interface{}, 0)
 
 	for _, p := range pointers.([]string) {
 

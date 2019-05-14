@@ -1,4 +1,4 @@
-package sfomuseum
+package flysfo
 
 import (
 	"encoding/json"
@@ -11,23 +11,21 @@ import (
 )
 
 type Airline struct {
-	WOFID        int64  `json:"wof:id"`
-	Name         string `json:"wof:name"`
-	SFOMuseumID  int    `json:"sfomuseum:airline_id"`
-	IATACode     string `json:"iata:code,omitempty"`
-	ICAOCode     string `json:"icao:code,omitempty"`
-	ICAOCallsign string `json:"icao:callsign,omitempty"`
-	WikidataID   string `json:"wd:id,omitempty"`
+	WOFID    int64  `json:"wof:id"`
+	Name     string `json:"wof:name"`
+	FlysfoID int    `json:"flysfo:airline_id"`
+	IATACode string `json:"iata:code,omitempty"`
+	ICAOCode string `json:"icao:code,omitempty"`	
 }
 
 func (a *Airline) String() string {
-	return fmt.Sprintf("%s %s %s \"%s\" %d", a.IATACode, a.ICAOCode, a.ICAOCallsign, a.Name, a.WOFID)
+	return fmt.Sprintf("%s %s \"%s\" %d", a.IATACode, a.ICAOCode, a.Name, a.WOFID)
 }
 
 var lookup_table *sync.Map
 var lookup_init sync.Once
 
-type SFOMuseumLookup struct {
+type FlysfoLookup struct {
 	airlines.Lookup
 }
 
@@ -57,8 +55,7 @@ func NewLookup() (airlines.Lookup, error) {
 
 			possible_codes := []string{
 				craft.IATACode,
-				craft.ICAOCode,
-				craft.ICAOCallsign,
+				craft.ICAOCode,				
 				str_wofid,
 			}
 
@@ -106,11 +103,11 @@ func NewLookup() (airlines.Lookup, error) {
 		return nil, lookup_err
 	}
 
-	l := SFOMuseumLookup{}
+	l := FlysfoLookup{}
 	return &l, nil
 }
 
-func (l *SFOMuseumLookup) Find(code string) ([]interface{}, error) {
+func (l *FlysfoLookup) Find(code string) ([]interface{}, error) {
 
 	pointers, ok := lookup_table.Load(code)
 
