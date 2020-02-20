@@ -45,6 +45,8 @@ func main() {
 			return err
 		}
 
+		// TO DO : https://github.com/sfomuseum/go-sfomuseum-airlines-tools/issues/1
+		
 		pt := sfomuseum_props.Placetype(f)
 
 		if pt != "airline" {
