@@ -1,6 +1,6 @@
-tools:
-	go -mod vendor build -o bin/build-sfomuseum-data/main.go cmd/build-sfomuseum-data.go
-	go -mod vendor build -o bin/build-flysfo-data/main.go cmd/build-flysfo-data.go
+cli:
+	go build -mod vendor  -o bin/build-sfomuseum-data cmd/build-sfomuseum-data/main.go
+	go build -mod vendor -o bin/build-flysfo-data cmd/build-flysfo-data/main.go
 
 data:	tools sfomuseum-data flysfo-data
 

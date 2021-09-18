@@ -4,129 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"github.com/sfomuseum/go-sfomuseum-airlines-tools"
 	"github.com/sfomuseum/go-sfomuseum-airlines-tools/template"
-	"github.com/sfomuseum/go-sfomuseum-airlines/sfomuseum"
-	"github.com/sfomuseum/go-sfomuseum-geojson/feature"
-	sfomuseum_props "github.com/sfomuseum/go-sfomuseum-geojson/properties/sfomuseum"
-	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
-	"github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
-	"github.com/whosonfirst/go-whosonfirst-index"
-	index_utils "github.com/whosonfirst/go-whosonfirst-index/utils"
-	"io"
 	"log"
 	"os"
-	"sync"
 )
 
 func main() {
 
-	data := flag.String("data", "/usr/local/data/sfomuseum-data-enterprise", "...")
+	iterator_uri := flag.String("iterator-uri", "repo://", "...")
+	iterator_source := flag.String("iterator-source", "/usr/local/data/sfomuseum-data-enterprise", "...")
 
 	flag.Parse()
 
-	lookup := make([]sfomuseum.Airline, 0)
-	mu := new(sync.RWMutex)
+	ctx := context.Background()
 
-	seen := new(sync.Map)
-
-	cb := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
-
-		is_principal, err := index_utils.IsPrincipalWOFRecord(fh, ctx)
-
-		if err != nil {
-			return err
-		}
-
-		if !is_principal {
-			return nil
-		}
-
-		f, err := feature.LoadFeatureFromReader(fh)
-
-		if err != nil {
-			return err
-		}
-
-		pt := sfomuseum_props.Placetype(f)
-
-		if pt != "airline" {
-			return nil
-		}
-
-		is_current := utils.Int64Property(f.Bytes(), []string{"properties.mz:is_current"}, -1)
-
-		if is_current != 1 {
-			return nil
-		}
-
-		concordances, err := whosonfirst.Concordances(f)
-
-		if err != nil {
-			return err
-		}
-
-		iata_code, ok := concordances["flysfo:code"]
-
-		if !ok {
-			return nil
-		}
-
-		wof_id := whosonfirst.Id(f)
-		name := whosonfirst.Name(f)
-
-		w, ok := seen.Load(iata_code)
-
-		if ok {
-			log.Println("WARNING", iata_code, w, wof_id)
-		}
-
-		seen.Store(iata_code, wof_id)
-
-		sfom_id := utils.Int64Property(f.Bytes(), []string{"properties.sfomuseum:airline_id"}, -1)
-
-		a := sfomuseum.Airline{
-			WOFID:       wof_id,
-			SFOMuseumID: int(sfom_id),
-			Name:        name,
-			IATACode:    iata_code,
-		}
-
-		icao_code, ok := concordances["icao:code"]
-
-		if ok {
-			w, ok := seen.Load(icao_code)
-
-			if ok {
-				log.Println("WARNING", icao_code, w, wof_id)
-
-			} else {
-				seen.Store(icao_code, wof_id)
-			}
-
-			a.ICAOCode = icao_code
-
-		} else {
-			log.Println("WARNING", "Missing ICAO code", wof_id)
-		}
-
-		mu.Lock()
-		defer mu.Unlock()
-
-		lookup = append(lookup, a)
-
-		return nil
-	}
-
-	idx, err := index.NewIndexer("repo", cb)
+	lookup, err := tools.CompileFlySFOAirlinesData(ctx, *iterator_uri, *iterator_source)
 
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = idx.IndexPath(*data)
-
-	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to compile data, %v", err)
 	}
 
 	enc, err := json.Marshal(lookup)
